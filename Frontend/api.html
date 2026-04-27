@@ -1,0 +1,187 @@
+
+
+/// ------Global Variables -------////
+const $taskForm = document.getElementById('taskForm');
+const $toDoList = document.getElementById('toDoList');
+const $completedList = document.getElementById('completedList');
+
+
+//------ Reset Function -----///
+function resetForm(){
+  $taskForm.reset();
+}
+
+
+/// ---- Event listener----///
+window.addEventListener("DOMContentLoaded", () =>{
+    displayTasks();
+});
+
+$taskForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  createNewTask();
+});
+
+[$toDoList, $completedList].forEach(list => {
+  list.addEventListener('click', (event) => {
+    if (event.target.classList.contains('done')){
+      const taskId = event.target.getAttribute("data-id");
+      completeTask(taskId);
+    }
+    else if (event.target.classList.contains('notDone')){
+       const taskId = event.target.getAttribute("data-id");
+      taskNotComplete(taskId);
+    }
+    else if (event.target.classList.contains('delete')){
+      const taskId= event.target.getAttribute("data-id");
+      deleteTask(taskId);
+    }
+  })
+})
+
+/// ------Displaying Tasks -------////
+async function displayTasks(){
+  try{
+    const response= await fetch("http://localhost:3000/api/tasks");
+
+    if (!response.ok){
+      throw new Error (`Failed to get tasks: ${response.status}`);
+    }
+
+    const data= await response.json();
+
+
+    function formatTask(task){
+
+        //creating a list item elaement 
+        const li = document.createElement("li");
+
+
+        //Adding classes to the list items class list (formatting)
+        li.classList.add('card', 'p-3', 'shadow-sm', 'mt-2');
+        
+
+        //Checking whether task.completed is true or false (adds to class list if true)
+        const done = task.completed ? "text-decoration-line-through opacity-50" : "";
+
+
+          //Adding all the innter HTML to the list item (title, description, date created, etc.)
+        li.innerHTML =`<div class="d-flex justify-content-between align-items-start">
+        <h4 class="${done} col-11">${task.title}</h4>
+        <button data-id="${task.id}" type="button" class="btn-close delete" aria-label="Close"></button>
+      </div>
+      <p class="${done}">${task.description}</p>
+      <p class="${done}"><strong>Due: </strong>${task.dueDate}</p>
+      <div class="d-flex justify-content-between align-items-end">
+        <div>
+          ${
+            task.completed ? `<button data-id="${task.id}" class="btn btn-primary shadow-sm notDone" type="button">Not done</button>`
+            : 
+            `
+              <button data-id="${task.id}" class="btn btn-primary shadow-sm edit" type="button">Edit</button>
+              <button data-id="${task.id}" class="btn btn-primary shadow-sm done" type="button">Done</button>
+            `
+          }
+        </div>
+        <p class="m-0 ${done}"><strong>Created on: </strong>${task.dateCreated}</p>
+      </div>
+      `;
+
+      return li;
+    }
+
+    $toDoList.innerHTML = "";
+    $completedList.innerHTML = "";
+
+    const tasks = data;
+
+    tasks.forEach(task => {
+        const formattedTask = formatTask(task);
+        task.completed ? $completedList.appendChild(formattedTask) : $toDoList.appendChild(formattedTask);
+    });
+    resetForm();
+}catch (error){
+  console.error(`ERROR: ${error}`)
+}
+
+}
+
+//Creating a New task (in Frontend)
+
+async function createNewTask(){
+
+  const taskDetails = {
+    title: $taskForm.taskName.value.trim(),
+    description: $taskForm.taskDescription.value.trim(),
+    dueDate: $taskForm.dueDate.value,
+};
+if (!taskDetails.title || !taskDetails.description || !taskDetails.dueDate){
+  return alert("All fields required");
+}
+
+try{
+  const reponse = await fetch("http://localhost:3000/api/tasks/todo", {
+    method: "POST",
+    headers: {
+      "Content-Type" : "application/json"
+    },
+    body: JSON.stringify(taskDetails)
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to post task: ${response.status}`);
+  }
+
+  const data = await response.json();
+  console.log(data);
+  displayTasks();
+
+}catch (error){
+  console.error(`ERROR: ${error}`);
+
+}
+}
+
+//Updating Tasks (complete)
+function completeTask(taskId){
+  const task = tasks.find(task => task.id == taskId);
+
+  if(task){
+    task.completed = true;
+  }
+
+  displayTasks();
+}
+
+//Updating tasks (not complete)
+
+function taskNotComplete(taskId){
+   const task = tasks.find(task => task.id == taskId);
+
+  if(task){
+    task.completed = false;
+
+  }
+
+  displayTasks();
+}
+// Delete task
+
+function deleteTask(taskId){
+  const taskIndex = tasks.findIndex(task => task.id == taskId);
+
+  if(taskIndex !== -1){
+    tasks.splice(taskIndex, 1);
+  }
+  displayTasks();
+}
+
+////-------------------Example API---------------------
+async function exampleAPI(){
+  const response = await fetch("http://127.0.0.1:3000/get/example");
+  const data = await response.text();
+
+  console.log(data);
+  
+}
+exampleAPI();
