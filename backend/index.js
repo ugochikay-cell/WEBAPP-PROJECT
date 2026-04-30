@@ -13,7 +13,16 @@ const app = express();
 //Middleware setup
 app.use(express.json());
 
-app.use(cors("*")); //change
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || origin.endsWith(".vercel.app")) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true
+})); //change
 
 ///-------Mongo Setup--------------------------------
 (async () => {
